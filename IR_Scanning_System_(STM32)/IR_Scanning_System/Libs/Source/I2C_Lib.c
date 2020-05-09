@@ -35,47 +35,69 @@ void I2C2_Init()
 	
 	I2C2->CR1 |= I2C_CR1_ACK;
 	
-	I2C2->OAR2 &= I2C_OAR2_ADD2; 
+	I2C2->OAR2 &= I2C_OAR2_ADD2;  
 }
 
 
-void I2C2_SendByte(const unsigned char* data)
+int8_t I2C2_Start(uint8_t slave_addr, uint8_t IsRead, uint16_t TimeOut)
 {
-	I2C2->DR = *data;
-	while (!(I2C2->SR1 & I2C_SR1_TXE)) ;
-}
-
-
-void I2C2_Start(unsigned char slave_addr, unsigned char IsRead)
-{
-	I2C2->CR1 &= ~I2C_CR1_POS;
+	uint16_t timeout = TimeOut;
 	
 	I2C2->CR1 |= I2C_CR1_START;
 	
-	while (!(I2C2->SR1 & I2C_SR1_SB)); // Wait until START is set
+	while ((!(I2C2->SR1 & I2C_SR1_SB)) && timeout)
+		timeout--; // Wait until START is set
 	
-	(void)I2C2->SR1;
+	(void) I2C1->SR1;
 	
-	I2C2->DR = IsRead ? slave_addr | 1 : slave_addr; // Sending slave address
+	if(!timeout) return I2C_ERR_HWerr;
 	
-	while (!(I2C2->SR1 & I2C_SR1_ADDR));
+	timeout = TimeOut;
 	
-	(void)I2C2->SR1;
-	(void)I2C2->SR2;	
+	I2C2->DR = IsRead ? slave_addr | 1 : slave_addr;  // Sending slave address
+	
+	while ((!(I2C2->SR1 & I2C_SR1_ADDR)) && timeout)
+		timeout--;
+	
+	(void) I2C1->SR1;
+	(void) I2C1->SR2;
+	
+	if (!timeout) return I2C_ERR_NotConnect;
+	
+	return I2C_ERR_Ok;
 }
 
 
-void I2C2_Stop()
+int8_t I2C2_SendByte(const uint8_t* data, uint16_t TimeOut)
 {
-	I2C2->CR1 |= I2C_CR1_STOP;
+	uint16_t timeout = TimeOut;
+	
+	I2C2->DR = *data;
+	
+	while ((!(I2C2->SR1 & I2C_SR1_BTF)) && timeout)
+		timeout--;
+	
+	if (!timeout) return I2C_ERR_NotConnect;
+	
+	return I2C_ERR_Ok;
 }
 
-void I2C2_SendBuff(unsigned char *pbuf, unsigned int len)
+int8_t I2C2_SendBuff(const uint8_t* pbuf, uint32_t len, uint16_t TimeOut)
 {
-	while (len--) I2C2_SendByte(pbuf++);
+	uint16_t timeout = TimeOut;
+	
+	while (len--) 
+	{
+		timeout = TimeOut;
+		
+		if (!I2C2_SendByte(pbuf++, timeout)) 
+			return I2C_ERR_NotConnect;
+	}
+	
+	return I2C_ERR_Ok;
 }
 
-unsigned char I2C2_ReadByteACK()
+uint8_t I2C2_ReadByteACK(uint16_t* TimeOut)
 {
 	I2C2->CR1 |= I2C_CR1_ACK;
 	
@@ -84,7 +106,7 @@ unsigned char I2C2_ReadByteACK()
 	return I2C2->DR;	
 }
 
-unsigned char I2C2_ReadByteNACK()
+uint8_t I2C2_ReadByteNACK(uint16_t* TimeOut)
 {
 	I2C2->CR1 &= ~I2C_CR1_ACK;
 	
@@ -93,15 +115,89 @@ unsigned char I2C2_ReadByteNACK()
 	return I2C2->DR;
 }
 
-void I2C2_ReadBuffAndStop(unsigned char *pbuf, unsigned int len)
+int8_t I2C2_ReadBuffAndStop(uint8_t *pbuf, unsigned int len, uint16_t TimeOut)
 {
-	while (len--)
+	
+	uint16_t timeout = TimeOut;
+	
+	I2C2->CR1 |= I2C_CR1_ACK;
+	
+	if (1 == len)
 	{
-		if (len)
-			*(pbuf++) = I2C2_ReadByteACK();
-		else
-			*(pbuf++) = I2C2_ReadByteNACK();
+		I2C2->CR1 &= ~I2C_CR1_ACK;
+		
+		__disable_irq();
+		(void) I2C2->SR2;                                                  
+		I2C2->CR1 |= I2C_CR1_STOP;
+		__enable_irq();
+
+		timeout = TimeOut;
+		
+		while ((!(I2C2->SR1 & I2C_SR1_RXNE)) && timeout--);
+		
+		*pbuf++ = (uint8_t)I2C2->DR;
+	}
+	else if (2 == len)
+	{
+		I2C2->CR1 |= I2C_CR1_POS;
+		
+		__disable_irq();
+		(void) I2C2->SR2;  // Clear ADDR flag
+		I2C2->CR1 &= ~I2C_CR1_ACK;  
+		__enable_irq();
+
+		timeout = TimeOut;
+		
+		while ((!(I2C2->SR1 & I2C_SR1_BTF)) && timeout--);
+		
+		__disable_irq();
+		I2C2->CR1 |= I2C_CR1_STOP;
+		*pbuf++ = (uint8_t)I2C2->DR;
+		__enable_irq();
+
+		*pbuf++ = (uint8_t)I2C2->DR;		
+	}
+	else 
+	{
+		(void) I2C2->SR2;
+		
+		while(len-- != 3)
+		{
+			timeout = TimeOut;
+			while ((!(I2C2->SR1 & I2C_SR1_BTF)) && timeout--);
+			*pbuf++ = (uint8_t)I2C2->DR;
+		}
+
+		timeout = TimeOut;
+		while ((!(I2C2->SR1 & I2C_SR1_BTF)) && timeout--);
+
+		
+		__disable_irq();
+		*pbuf++ = (uint8_t)I2C2->DR;
+		I2C2->CR1 |= I2C_CR1_STOP;
+		__enable_irq();
+
+		*pbuf++ = (uint8_t)I2C2->DR;
+
+		I2C2->CR1 &= ~I2C_CR1_ACK; 
+
+		timeout = TimeOut;
+		
+		while ( !( (I2C2->SR1 & I2C_SR1_RXNE) && (I2C2->SR2 & I2C_SR2_BUSY) && (I2C2->SR2 & I2C_SR2_MSL) ) && timeout--) ;
+		
+		*pbuf++ = (uint8_t)I2C2->DR; // Receive PEC
+
+		len = 0;
 	}
 	
-	I2C2_Stop();
+	timeout = TimeOut;
+	
+	while ((!(I2C2->SR1 & I2C_SR1_STOPF)) && timeout--);
+	
+	if (!timeout) return I2C_ERR_HWerr;
+  
+	//return I2C_ERR_Ok;
+	
+	
+	return I2C_ERR_Ok;
 }
