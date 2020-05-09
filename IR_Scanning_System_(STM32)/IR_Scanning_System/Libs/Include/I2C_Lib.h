@@ -22,7 +22,7 @@ int8_t I2C2_SendBuff(const uint8_t* pbuf, uint32_t len, uint16_t TimeOut);
 uint8_t I2C2_ReadByteACK();
 uint8_t I2C2_ReadByteNACK(); 
 
-int8_t I2C2_ReadBuffAndStop(unsigned char *pbuf, unsigned int len, uint16_t TimeOut);
+int8_t I2C2_ReadBuffAndStop(uint8_t *pbuf, uint32_t len, uint16_t TimeOut);
 
 
 #endif

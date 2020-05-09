@@ -26,38 +26,9 @@ int main()
 	Set_USBClock();
 	USB_Init();
 		
-	float Amb_Temp = 0;
-	float Obj_1_Temp = 0, Obj_2_Temp = 0;
-	
-	int8_t ErrTa = 0;
-	int8_t ErrTo1 = 0;
-	
 	
 	while(1)
-	{
-		int8_t ErrTa = MLX9061x_ReadTa(MLX9061X_ADDR, &Amb_Temp);
-		int8_t ErrTo1 = MLX9061x_ReadTo1(MLX9061X_ADDR, &Obj_1_Temp);
-				
-		
-		if (ErrTa)
-			sprintf(str_buffer, "Ambient temperature error - %d\n", ErrTa);
-		else
-			sprintf(str_buffer, "Ambient temperature is %3.1f\n", (double)Amb_Temp);
-		
-		USART1_SendString(str_buffer);
-    
-		
-		if (ErrTo1)
-			sprintf(str_buffer, "First object temperature error - %d\n", ErrTo1);
-		else
-			sprintf(str_buffer, "First object temperature is %3.1f\n", (double)Obj_1_Temp);
-				
-		USART1_SendString(str_buffer);
-		
-		GPIOC->ODR ^= GPIO_ODR_ODR13;
-		
-		delay();
-				
+	{	
 		/*if (bDeviceState == CONFIGURED)
 		{
 			if (PrevXferComplete)
@@ -86,18 +57,25 @@ void Command_Handler()
 			{
 				float Amb_Temp = 0;
 				float Obj_1_Temp = 0, Obj_2_Temp = 0;
-				
-				MLX9061x_ReadReg(0xB4, 6, &Amb_Temp);
-				MLX9061x_ReadReg(0xB4, 7, &Obj_1_Temp);
-				MLX9061x_ReadReg(0xB4, 8, &Obj_2_Temp);
-				
-				sprintf(str_buffer, "Ambient temperature is %f\nFirst object temperature is %f\nSecond object temperature is %f\n", 
-									(double)Amb_Temp, (double)Obj_1_Temp, (double)Obj_2_Temp);
+	
+				int8_t ErrTa = MLX9061x_ReadTa(MLX9061X_ADDR, &Amb_Temp);
+				int8_t ErrTo1 = MLX9061x_ReadTo1(MLX9061X_ADDR, &Obj_1_Temp);	
+		
+				if (ErrTa)
+					sprintf(str_buffer, "Ambient temperature error - %d\n", ErrTa);
+				else
+					sprintf(str_buffer, "Ambient temperature is %3.1f\n", (double)Amb_Temp);
+		
+				USART1_SendString(str_buffer);
+    
+				if (ErrTo1)
+					sprintf(str_buffer, "First object temperature error - %d\n", ErrTo1);
+				else
+					sprintf(str_buffer, "First object temperature is %3.1f\n", (double)Obj_1_Temp);
 				
 				USART1_SendString(str_buffer);
 			}
 			else USART1_SendString("Unknown command!\r\n");
-			
 			break;
 		}
 		

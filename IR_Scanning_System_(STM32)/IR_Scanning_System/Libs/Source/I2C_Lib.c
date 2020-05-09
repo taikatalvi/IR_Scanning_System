@@ -42,25 +42,35 @@ void I2C2_Init()
 int8_t I2C2_Start(uint8_t slave_addr, uint8_t IsRead, uint16_t TimeOut)
 {
 	uint16_t timeout = TimeOut;
-	
+		
 	I2C2->CR1 |= I2C_CR1_START;
 	
-	while ((!(I2C2->SR1 & I2C_SR1_SB)) && timeout)
-		timeout--; // Wait until START is set
+	// Wait until I2C_EVENT_MASTER_MODE_SELECT
+	while (!((I2C2->SR1 & I2C_SR1_SB) && (I2C2->SR2 & I2C_SR2_BUSY) && (I2C2->SR2 & I2C_SR2_MSL)) && timeout--) ;
 	
-	(void) I2C1->SR1;
+	(void)I2C2->SR1;
 	
-	if(!timeout) return I2C_ERR_HWerr;
+	if (!timeout) return I2C_ERR_HWerr;
 	
 	timeout = TimeOut;
 	
-	I2C2->DR = IsRead ? slave_addr | 1 : slave_addr;  // Sending slave address
-	
-	while ((!(I2C2->SR1 & I2C_SR1_ADDR)) && timeout)
-		timeout--;
-	
-	(void) I2C1->SR1;
-	(void) I2C1->SR2;
+	if (IsRead)
+	{
+		I2C2->DR = slave_addr | 1;
+		
+		// Wait until I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED
+		while (!((I2C2->SR1 & I2C_SR1_ADDR) && (I2C2->SR2 & I2C_SR2_BUSY) && (I2C2->SR2 & I2C_SR2_MSL)) && timeout--) ;
+	}
+	else
+	{
+		I2C2->DR = slave_addr;
+		
+		// Wait until I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED		
+		while (!((I2C2->SR1 & I2C_SR1_ADDR) && (I2C2->SR1 & I2C_SR1_TXE) && (I2C2->SR1 & I2C_SR2_TRA) && (I2C2->SR2 & I2C_SR2_BUSY) && (I2C2->SR2 & I2C_SR2_MSL)) && timeout--) ;
+	}
+  
+	(void)I2C2->SR1;
+	(void)I2C2->SR2;
 	
 	if (!timeout) return I2C_ERR_NotConnect;
 	
@@ -84,14 +94,13 @@ int8_t I2C2_SendByte(const uint8_t* data, uint16_t TimeOut)
 
 int8_t I2C2_SendBuff(const uint8_t* pbuf, uint32_t len, uint16_t TimeOut)
 {
-	uint16_t timeout = TimeOut;
+	int8_t err = 0;
 	
 	while (len--) 
-	{
-		timeout = TimeOut;
+	{	
+		err = I2C2_SendByte(pbuf++, TimeOut);
 		
-		if (!I2C2_SendByte(pbuf++, timeout)) 
-			return I2C_ERR_NotConnect;
+		if (err) return I2C_ERR_NotConnect;
 	}
 	
 	return I2C_ERR_Ok;
@@ -101,7 +110,7 @@ uint8_t I2C2_ReadByteACK(uint16_t* TimeOut)
 {
 	I2C2->CR1 |= I2C_CR1_ACK;
 	
-	while(!(I2C2->SR1 & I2C_SR1_RXNE));
+	while (!(I2C2->SR1 & I2C_SR1_BTF)) ;
 	
 	return I2C2->DR;	
 }
@@ -110,16 +119,14 @@ uint8_t I2C2_ReadByteNACK(uint16_t* TimeOut)
 {
 	I2C2->CR1 &= ~I2C_CR1_ACK;
 	
-	while (!(I2C2->SR1 & I2C_SR1_RXNE));
+	while (!(I2C2->SR1 & I2C_SR1_BTF)) ;
 	
 	return I2C2->DR;
 }
 
-int8_t I2C2_ReadBuffAndStop(uint8_t *pbuf, unsigned int len, uint16_t TimeOut)
+int8_t I2C2_ReadBuffAndStop(uint8_t *pbuf, uint32_t len, uint16_t TimeOut)
 {
-	
 	uint16_t timeout = TimeOut;
-	
 	I2C2->CR1 |= I2C_CR1_ACK;
 	
 	if (1 == len)
@@ -171,7 +178,6 @@ int8_t I2C2_ReadBuffAndStop(uint8_t *pbuf, unsigned int len, uint16_t TimeOut)
 		timeout = TimeOut;
 		while ((!(I2C2->SR1 & I2C_SR1_BTF)) && timeout--);
 
-		
 		__disable_irq();
 		*pbuf++ = (uint8_t)I2C2->DR;
 		I2C2->CR1 |= I2C_CR1_STOP;
@@ -195,9 +201,7 @@ int8_t I2C2_ReadBuffAndStop(uint8_t *pbuf, unsigned int len, uint16_t TimeOut)
 	while ((!(I2C2->SR1 & I2C_SR1_STOPF)) && timeout--);
 	
 	if (!timeout) return I2C_ERR_HWerr;
+	
   
-	//return I2C_ERR_Ok;
-	
-	
 	return I2C_ERR_Ok;
 }
