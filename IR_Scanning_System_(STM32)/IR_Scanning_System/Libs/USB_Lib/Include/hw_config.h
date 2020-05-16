@@ -50,8 +50,8 @@
 /* Exported define -----------------------------------------------------------*/
 #define NVIC_PriorityGroup_2     ((uint32_t)0x500)
 #define AIRCR_VECTKEY_MASK       ((uint32_t)0x05FA0000)
-#define RPT3_COUNT 0x01 //PC->STM32
-#define RPT4_COUNT 0x04 //STM32->PC
+
+#define RPT2_COUNT 0x3F
 
 /* Exported functions ------------------------------------------------------- */
 void Set_System(void);
@@ -60,7 +60,7 @@ void Enter_LowPowerMode(void);
 void Leave_LowPowerMode(void);
 void USB_Interrupts_Config(void);
 void USB_Cable_Config (FunctionalState NewState);
-void Custom_HID_Send(uint8_t report, uint8_t state);
+void Custom_HID_Send(uint8_t* data, uint32_t length);
 void GPIO_Configuration(void);
 void EXTI_Configuration(void);
 void ADC_Configuration(void);

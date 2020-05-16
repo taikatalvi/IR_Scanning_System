@@ -53,8 +53,8 @@
 uint32_t ProtocolValue;
 __IO uint8_t EXTI_Enable;
 __IO uint8_t Request = 0;
-uint8_t Report_Buf[2];
-extern uint8_t Buffer[RPT4_COUNT + 1];
+uint8_t Report_Buf[RPT2_COUNT + 1];
+
 /* -------------------------------------------------------------------------- */
 /*  Structures initializations */
 /* -------------------------------------------------------------------------- */
@@ -233,14 +233,17 @@ void CustomHID_SetDeviceAddress (void)
 *******************************************************************************/
 void CustomHID_Status_In(void)
 {  
-	uint8_t Led_State = Report_Buf[1];
-
 	if (Report_Buf[0] == 1)
 	{
-	    if (Led_State == 1)
-		    GPIOC->BSRR |= GPIO_BSRR_BR13;	
-	    else
-		    GPIOC->BSRR |= GPIO_BSRR_BS13; 
+		if (Report_Buf[1] == 1)
+			GPIOC->BSRR |= GPIO_BSRR_BR13;	
+		else if (Report_Buf[1] == 0)
+			GPIOC->BSRR |= GPIO_BSRR_BS13; 
+	}
+	else if (Report_Buf[0] == 2)
+	{
+		TIM4->CCR1 = Report_Buf[1];		
+		Custom_HID_Send(Report_Buf, (uint32_t)sizeof(Report_Buf));
 	}
 }
 

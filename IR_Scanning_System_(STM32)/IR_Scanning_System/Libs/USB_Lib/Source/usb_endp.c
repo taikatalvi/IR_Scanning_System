@@ -46,8 +46,9 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-uint8_t Receive_Buffer[2];
-extern uint8_t Buffer[RPT4_COUNT + 1];
+
+uint8_t Report_Buf[RPT2_COUNT + 1];
+
 extern __IO uint8_t PrevXferComplete;
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -61,15 +62,21 @@ extern __IO uint8_t PrevXferComplete;
 void EP1_OUT_Callback(void)
 {
 	/* Read received data (2 bytes) */
-	USB_SIL_Read(EP1_OUT, Receive_Buffer);
+	USB_SIL_Read(EP1_OUT, Report_Buf);
 	
-	if (Receive_Buffer[0] == 1)
+	if (Report_Buf[0] == 1)
 	{
-		if (Receive_Buffer[1] == 1)
+		if (Report_Buf[1] == 1)
 			GPIOC->BSRR |= GPIO_BSRR_BR13;	
 		else
 			GPIOC->BSRR |= GPIO_BSRR_BS13;
 	}
+	else if (Report_Buf[0] == 2)
+	{
+		TIM4->CCR1 = Report_Buf[1];
+		Custom_HID_Send(Report_Buf, (uint32_t)sizeof(Report_Buf));
+	}
+		
 
 	SetEPRxStatus(ENDP1, EP_RX_VALID);
 }

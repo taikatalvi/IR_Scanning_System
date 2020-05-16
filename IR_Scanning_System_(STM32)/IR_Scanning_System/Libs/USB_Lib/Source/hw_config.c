@@ -51,7 +51,6 @@ ErrorStatus HSEStartUpStatus;
 extern __IO uint8_t PrevXferComplete;
 __IO uint16_t  ADC1ConvertedValue = 0, ADC1ConvertedVoltage = 0, calibration_value = 0;
 
-uint8_t Buffer[RPT4_COUNT + 1];
 
 /* Extern variables ----------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
@@ -143,16 +142,15 @@ void USB_Interrupts_Config(void)
 	NVIC->ISER[NVIC_IRQChannel >> 0x05] = (uint32_t)0x01 << (NVIC_IRQChannel & (uint8_t)0x1F); 
 }
 
-//uint8_t Buffer[RPT4_COUNT + 1];
-void Custom_HID_Send(uint8_t report, uint8_t state)
-{
-	uint8_t Buffer[2] = { report, state };
+void Custom_HID_Send(uint8_t* data, uint32_t length)
+{	
+	if (length > wMaxPacketSize) return;
 	
 	/* Reset the control token to inform upper layer that a transfer is ongoing */
 	PrevXferComplete = 0;
 
 	/* Copy buttons data in ENDP1 Tx Packet Memory Area*/
-	USB_SIL_Write(EP1_IN, Buffer, 2);
+	USB_SIL_Write(EP1_IN, data, length);
 	/* Enable endpoint for transmission */
 	SetEPTxValid(ENDP1);
 }

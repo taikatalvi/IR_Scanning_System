@@ -89,7 +89,7 @@ const uint8_t CustomHID_ConfigDescriptor[CUSTOMHID_SIZ_CONFIG_DESC] =
     0x01,         /* bConfigurationValue: Configuration value */
     0x00,         /* iConfiguration: Index of string descriptor describing
                                  the configuration*/
-    0xC0,         /* bmAttributes: Self powered */
+    0xE0,         /* bmAttributes: Self powered */
     0x32,         /* MaxPower 100 mA: this current is used for detecting Vbus */
 
     /************** Descriptor of Custom HID interface ****************/
@@ -141,40 +141,37 @@ const uint8_t CustomHID_ConfigDescriptor[CUSTOMHID_SIZ_CONFIG_DESC] =
 
 const uint8_t CustomHID_ReportDescriptor[CUSTOMHID_SIZ_REPORT_DESC] =
   {                    
-    0x06, 0xFF, 0x00,      /* USAGE_PAGE (Vendor Page: 0xFF00) */                       
-    0x09, 0x01,            /* USAGE (Demo Kit)               */    
-    0xa1, 0x01,            /* COLLECTION (Application)       */            
-    /* 6 */
-    
-    /* Led 1 */        
-    0x85, 0x01,            /*     REPORT_ID (1)		     */
-    0x09, 0x01,            /*     USAGE (LED 1)	             */
-    0x15, 0x00,            /*     LOGICAL_MINIMUM (0)        */          
-    0x25, 0x01,            /*     LOGICAL_MAXIMUM (1)        */           
-    0x75, 0x08,            /*     REPORT_SIZE (8)            */        
-    0x95, 0x01,            /*     REPORT_COUNT (1)           */       
-    0xB1, 0x82,             /*    FEATURE (Data,Var,Abs,Vol) */     
-
-    0x85, 0x01,            /*     REPORT_ID (1)              */
-    0x09, 0x01,            /*     USAGE (LED 1)              */
-    0x91, 0x82,            /*     OUTPUT (Data,Var,Abs,Vol)  */
-    /* 26 */   
-
-	/* Led 1 */        
-    0x85, 0x02,            /*     REPORT_ID (1)		     */
-    0x09, 0x02,            /*     USAGE (LED 1)	             */
-    0x15, 0x00,            /*     LOGICAL_MINIMUM (0)        */          
-    0x25, 0x01,            /*     LOGICAL_MAXIMUM (1)        */           
-    0x75, 0x08,            /*     REPORT_SIZE (8)            */        
-    0x95, 0x01,            /*     REPORT_COUNT (1)           */       
-    0xB1, 0x82,             /*    FEATURE (Data,Var,Abs,Vol) */     
-
-    0x85, 0x02,            /*     REPORT_ID (1)              */
-    0x09, 0x02,            /*     USAGE (LED 1)              */
-    0x81, 0x82,            /*     INPUT (Data,Var,Abs,Vol)  */
-    /* 26 */   
+     0x06, 0x00, 0xff,              // USAGE_PAGE (Vendor Defined Page 1)    
+     0x09, 0x01,                    // USAGE (Vendor Usage  1)    
+     0xa1, 0x01,                    // COLLECTION (Application)
 	  
-    0xc0 	          /*     END_COLLECTION	             */
+                                    // ------- common globals --------    
+     0x15, 0x00,                    //   LOGICAL_MINIMUM (0)    
+     0x26, 0xff, 0x00,              //   LOGICAL_MAXIMUM (255)    
+     0x75, 0x08,                    //   REPORT_SIZE (8)
+	  
+                                    // ------- 1 byte report --------    
+     0x85, 0x01,                    //   REPORT_ID (1)    
+     0x95, 0x01,                    //   REPORT_COUNT (1)
+	 0x09, 0x01,                    //   USAGE (Vendor Usage  1)
+	 0xB1, 0x82,                    //   FEATURE (Data,Var,Abs,Vol)
+     0x09, 0x01,                    //   USAGE (Vendor Usage  1)    
+     0x81, 0x02,                    //   INPUT (Data,Var,Abs)    
+     0x09, 0x01,                    //   USAGE (Vendor Usage  1)    
+     0x91, 0x02,                    //   OUTPUT (Data,Var,Abs)
+	  	  
+                                    // ------- N bytes report --------    
+     0x85, 0x02,                    //   REPORT_ID     
+     0x95, RPT2_COUNT,              //   REPORT_COUNT 
+	 0x09, 0x01,
+	 0xB1, 0x82,                    //   FEATURE (Data,Var,Abs,Vol)
+     0x09, 0x02,                    //   USAGE (Vendor Usage  2)    
+     0x81, 0x02,                    //   INPUT (Data,Var,Abs)    
+     0x09, 0x02,                    //   USAGE (Vendor Usage  2)    
+     0x91, 0x02,                    //   OUTPUT (Data,Var,Abs)
+	  
+     0xc0                           // END_COLLECTION		  
+		  
   }; /* CustomHID_ReportDescriptor */
 
 /* USB String Descriptors (optional) */
@@ -192,9 +189,9 @@ const uint8_t CustomHID_StringVendor[CUSTOMHID_SIZ_STRING_VENDOR] =
     CUSTOMHID_SIZ_STRING_VENDOR, /* Size of Vendor string */
     USB_STRING_DESCRIPTOR_TYPE,  /* bDescriptorType*/
     /* Manufacturer: "STMicroelectronics" */
-    'S', 0, 'T', 0, 'M', 0, 'i', 0, 'c', 0, 'r', 0, 'o', 0, 'e', 0,
-    'l', 0, 'e', 0, 'c', 0, 't', 0, 'r', 0, 'o', 0, 'n', 0, 'i', 0,
-    'c', 0, 's', 0
+    'T', 0, 'a', 0, 'i', 0, 'k', 0, 'a', 0, 't', 0, 'a', 0, 'l', 0,
+    'v', 0, 'i', 0, ' ', 0, 'I', 0, 'n', 0, 'd', 0, 'u', 0, 's', 0,
+    't', 0, 'r', 0, 'i', 0, 'e', 0, 's', 0
   };
 
 const uint8_t CustomHID_StringProduct[CUSTOMHID_SIZ_STRING_PRODUCT] =

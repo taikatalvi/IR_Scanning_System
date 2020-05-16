@@ -29,16 +29,20 @@ int main()
 	
 	while(1)
 	{	
-		/*if (bDeviceState == CONFIGURED)
+		if (bDeviceState == CONFIGURED)
 		{
 			if (PrevXferComplete)
 			{
+				uint8_t data[2] = { 1, 0 };
+				
 				if ((GPIOC->IDR & GPIO_IDR_IDR13) != 0)
-					Custom_HID_Send(2, 0);
+					data[1] = 0;
 				else 
-					Custom_HID_Send(2, 1);
+					data[1] = 1;
+				
+				Custom_HID_Send(data, 2);
 			}
-		}*/
+		}
 	}
 }
 
