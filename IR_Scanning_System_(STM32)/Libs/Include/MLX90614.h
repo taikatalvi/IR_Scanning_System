@@ -27,4 +27,4 @@ int8_t MLX9061x_ReadTo2(uint8_t slave_addr, float *pTemp);
 
 
 
-#endif
+#endif
